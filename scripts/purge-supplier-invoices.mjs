@@ -27,7 +27,7 @@
 
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -112,9 +112,10 @@ for (const banned of PRODUCTION_DENYLIST) {
 if (!existsSync(join(ROOT, 'build', 'api.js'))) {
   fail('Le connecteur n\'est pas compilé. Lancez d\'abord :  npm install && npm run build');
 }
-const { DolibarrAPI } = await import(join(ROOT, 'build', 'api.js'));
-const { handleSupplierInvoiceTool } = await import(join(ROOT, 'build', 'tools', 'supplier_invoices.js'));
-const { handleSetupTool } = await import(join(ROOT, 'build', 'tools', 'setup.js'));
+const moduleUrl = (...parts) => pathToFileURL(join(ROOT, ...parts)).href;
+const { DolibarrAPI } = await import(moduleUrl('build', 'api.js'));
+const { handleSupplierInvoiceTool } = await import(moduleUrl('build', 'tools', 'supplier_invoices.js'));
+const { handleSetupTool } = await import(moduleUrl('build', 'tools', 'setup.js'));
 
 const api = new DolibarrAPI(DOLIBARR_URL, DOLIBARR_API_KEY);
 
