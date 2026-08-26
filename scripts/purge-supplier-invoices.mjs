@@ -212,6 +212,7 @@ console.log(`\n  ${green('✔')} Sauvegarde écrite dans ${bold(outDir)}`);
 console.log(bold(`\n═══ ${args.execute ? 'SUPPRESSION' : 'ANALYSE (simulation)'} ═══\n`));
 
 const deleted = [];
+const deletable = [];
 const blocked = [];
 
 for (const invoice of invoices) {
@@ -226,6 +227,7 @@ for (const invoice of invoices) {
     deleted.push({ id: invoice.id, ref: label });
     console.log(`  ${green('✔')} ${label} — supprimée`);
   } else if (!args.execute && isDeletable) {
+    deletable.push({ id: invoice.id, ref: label });
     console.log(`  ${green('○')} ${label} — supprimable`);
   } else {
     const deps = (result.bloquants ?? result.dependances ?? []).filter((d) => d.critique !== false);
@@ -248,7 +250,9 @@ const remaining = await fetchAllInvoices();
 
 writeFileSync(join(outDir, 'rapport.json'), JSON.stringify({
   mode: args.execute ? 'execution' : 'simulation',
-  supprimees: deleted, bloquees: blocked, restantes: remaining.length,
+  total: invoices.length,
+  supprimables: deletable, supprimees: deleted, bloquees: blocked,
+  restantes: remaining.length,
 }, null, 2));
 
 if (blocked.length > 0) {
@@ -266,10 +270,17 @@ if (blocked.length > 0) {
 }
 
 const count = remaining.length;
-console.log(count === 0
-  ? green(bold(`  FACTURES FOURNISSEURS = 0`))
-  : yellow(bold(`  FACTURES RESTANTES = ${count}`)));
-console.log(`\n  Supprimées : ${deleted.length}   Bloquées : ${blocked.length}`);
+if (args.execute) {
+  console.log(count === 0
+    ? green(bold('  FACTURES FOURNISSEURS = 0'))
+    : yellow(bold(`  FACTURES RESTANTES = ${count}`)));
+  console.log(`\n  Total traité : ${invoices.length}   Supprimées : ${deleted.length}   Bloquées : ${blocked.length}`);
+} else {
+  console.log(bold('  SYNTHÈSE — aucune facture touchée\n'));
+  console.log(`  Total factures fournisseurs : ${bold(invoices.length)}`);
+  console.log(`  Supprimables                : ${green(bold(deletable.length))}`);
+  console.log(`  Bloquées                    : ${blocked.length ? red(bold(blocked.length)) : bold('0')}`);
+}
 console.log(`  Rapport complet : ${join(outDir, 'rapport.json')}\n`);
 
 process.exit(args.execute && count > 0 ? 2 : 0);
