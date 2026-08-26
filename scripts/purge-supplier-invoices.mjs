@@ -68,7 +68,7 @@ function parseArgs(argv) {
 function loadDotEnv() {
   const path = join(ROOT, '.env');
   if (!existsSync(path)) return;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
+  for (const line of readFileSync(path, 'utf8').replace(/^\uFEFF/, '').split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     const eq = trimmed.indexOf('=');
@@ -93,11 +93,16 @@ if (args.help) {
 
 loadDotEnv();
 
-const DOLIBARR_URL = process.env.DOLIBARR_URL;
-const DOLIBARR_API_KEY = process.env.DOLIBARR_API_KEY;
+const DOLIBARR_URL = (process.env.DOLIBARR_URL ?? '').trim();
+const DOLIBARR_API_KEY = (process.env.DOLIBARR_API_KEY ?? '').trim();
 
-if (!DOLIBARR_URL || !DOLIBARR_API_KEY) {
-  fail("DOLIBARR_URL et DOLIBARR_API_KEY sont requis.\n  Renseignez-les dans le fichier .env à la racine du projet (jamais dans le code source).");
+const missing = [];
+if (!DOLIBARR_URL) missing.push('DOLIBARR_URL');
+if (!DOLIBARR_API_KEY) missing.push('DOLIBARR_API_KEY');
+if (missing.length > 0) {
+  fail(`Variable(s) absente(s) ou vide(s) : ${missing.join(', ')}.\n`
+    + `  Fichier .env attendu ici : ${join(ROOT, '.env')}\n`
+    + '  Renseignez-les dans ce fichier (jamais dans le code source).');
 }
 
 // ── Garde-fou : production formellement interdite ──
